@@ -19,10 +19,9 @@ class Pokemon:
 
     def getAttackDamage(self, move: str):
         move = self._moves[move]
-        move.use()
-        if move.getPP() <= 0:
-            self._moves.pop(move)
         didMiss = random.random() > move.getHitChance()
+        move.use()
+        self._updateMoveSet()
         if didMiss:
             return 0
 
@@ -32,6 +31,9 @@ class Pokemon:
     def takeDamage(self, damage: int):
         self._health -= damage
         return self._health
+
+    def _updateMoveSet(self):
+        self._moves = {moveName: move for moveName, move in self._moves.items() if move.getPP() > 0}
 
     def __str__(self):
         # Part of string fix if you guys wanted to do it
