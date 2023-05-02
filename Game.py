@@ -206,18 +206,22 @@ while option == 'p':
             print(f'Oh no! Your {player.getCurrentPokemonName()} is down!')
             print(player.getAllPokemon())
             print('\n')
-            player.setCurrentPokemon(input('What Pokemon are you going to send out next?!\n'))
-            print("-"*100)
-            print()
-            
-            # Update turn flag
-            turn = 0
-            
-            # Update game state
-            moveHistory.append(('rival', cpuMove))
-            updateGameState(gameState, player, rival, player.getAllPokemon(), rival.getAllPokemon(), player.getCurrentPokemon(), rival.getCurrentPokemon(), len(player._pokemon), len(rival._pokemon), playerRemainingMonHealth, rivalRemainingMonHealth, moveHistory, turn)
-            
-            continue
+            try:
+                player.setCurrentPokemon(input('What Pokemon are you going to send out next?!\n'))
+                print("-"*100)
+                print()
+                
+                 # Update turn flag
+                turn = 0
+                # Update game state
+                moveHistory.append(('rival', cpuMove))
+                updateGameState(gameState, player, rival, player.getAllPokemon(), rival.getAllPokemon(), player.getCurrentPokemon(), rival.getCurrentPokemon(), len(player._pokemon), len(rival._pokemon), playerRemainingMonHealth, rivalRemainingMonHealth, moveHistory, turn)
+                
+                continue
+            except KeyError as e:
+                print(f'Invalid name')
+                errorFlag = True
+                break
         
         # If player is still alive, print damage dealt
         if damageDealt > 0:
@@ -239,7 +243,7 @@ while option == 'p':
         
     # Check for a winner
     if errorFlag:
-        print('Try again.')
+        print('Restart the game.')
     elif player.canContinue():
         print('You did it! You beat your rival!')
     else:

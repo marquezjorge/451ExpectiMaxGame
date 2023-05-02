@@ -35,7 +35,6 @@ class Pokemon:
             if move_name is not None:
                 self._moves.pop(move_name)
         didMiss = random.random() > move.getHitChance()
-        move.use()
         self._updateMoveSet()
         if didMiss:
             return 0
@@ -48,12 +47,11 @@ class Pokemon:
         self._health -= damage
         return self._health
 
-
-    # Return string of class information
-
+    # Update moves list
     def _updateMoveSet(self):
         self._moves = {moveName: move for moveName, move in self._moves.items() if move.getPP() > 0}
 
+    # Return string of class information
     def __str__(self):
         # Part of string fix if you guys wanted to do it
         moveDict = {name: str(move) for name, move in self._moves.items()}
