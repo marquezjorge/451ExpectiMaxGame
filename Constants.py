@@ -19,20 +19,20 @@ CRUNCH = 'Crunch'
 # MoveName : (Damage, CritChance, HitChance, PP)
 MOVES = {
     STRUGGLE: (50, 5, 100, 25),
-    FIRE_PUNCH: (70, 10, 70, 10),
-    ICE_PUNCH: (60, 20, 70, 10),
-    JUMP_HIM: (80, 15, 70, 5),
-    THUNDERBOLT: (90, 0, 65, 4),
-    SWIFT: (60, 30, 85, 5),
-    HIGH_JUMPKICK: (110, 5, 50, 5),
-    SLAM: (65, 15, 100, 5),
-    TAIL_WHIP: (50, 20, 100, 5),
-    LICK: (25, 50, 75, 10),
-    MIRACLE: (200, 0, 3, 3),
-    SHADOW_SNEAK: (75, 5, 80, 3),
+    FIRE_PUNCH: (70, 10, 70, 5),
+    ICE_PUNCH: (60, 40, 75, 5),
+    JUMP_HIM: (85, 15, 70, 3),
+    THUNDERBOLT: (90, 0, 75, 3),
+    SWIFT: (60, 30, 85, 3),
+    HIGH_JUMPKICK: (110, 5, 60, 3),
+    SLAM: (65, 15, 88, 3),
+    TAIL_WHIP: (50, 15, 100, 3),
+    LICK: (45, 60, 90, 4),
+    MIRACLE: (200, 0, 10, 5),
+    SHADOW_SNEAK: (80, 5, 75, 3),
     CURSE: (60, 5, 100, 5),
-    FLAME_THROWER: (90, 10, 60, 4),
-    SEISMIC_TOSS: (80, 5, 70, 2),
+    FLAME_THROWER: (90, 5, 70, 3),
+    SEISMIC_TOSS: (80, 0, 80, 2),
     WATER_GUN: (60, 15, 95, 4),
     CRUNCH: (70, 0, 80, 3)
 }
@@ -48,9 +48,9 @@ SQUIRTLE = 'Squirtle'
 # Speed is currently unused, yet to see if it will be implemented
 POKEMON = {
     PIKACHU: (130, (THUNDERBOLT, SWIFT, SLAM, TAIL_WHIP), 95, 100),
-    MACHOP: (200, (FIRE_PUNCH, ICE_PUNCH, JUMP_HIM, HIGH_JUMPKICK), 70, 70),
-    GHASTLY: (100, (MIRACLE, LICK, SHADOW_SNEAK, CURSE), 110, 80),
-    CHIMCHAR: (160, (FLAME_THROWER, SLAM, HIGH_JUMPKICK, FIRE_PUNCH), 80, 70),
+    MACHOP: (200, (FIRE_PUNCH, ICE_PUNCH, JUMP_HIM, HIGH_JUMPKICK), 80, 70),
+    GHASTLY: (100, (MIRACLE, LICK, SHADOW_SNEAK, CURSE), 130, 80),
+    CHIMCHAR: (160, (FLAME_THROWER, SLAM, HIGH_JUMPKICK, FIRE_PUNCH), 87, 70),
     MAKUHITA: (140, (SEISMIC_TOSS, SLAM, SWIFT, ICE_PUNCH), 80, 80),
     SQUIRTLE: (135, (ICE_PUNCH, TAIL_WHIP, WATER_GUN, CRUNCH), 85, 110),
 }
@@ -65,3 +65,14 @@ TRAINERS = {
 }
 
 TRAINERS_LIST = [JOSE]
+
+BACKGROUND = 'images/BattleBackground.png'
+
+POKEMON_IMAGES = {
+    PIKACHU: '',
+    MACHOP: '',
+    GHASTLY: '',
+    CHIMCHAR: '',
+    MAKUHITA: '',
+    SQUIRTLE: '',
+}

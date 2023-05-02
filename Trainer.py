@@ -21,6 +21,10 @@ class Trainer:
     # Return pokemon moves
     def getPokemonMoves(self, pokemon_name: str):
         return list(self._pokemon[pokemon_name].getMoves())
+    
+    # Return pokemon in dictionary
+    def getPokemon(self):
+        return self._pokemon
 
     # Return string of all pokemons
     def getAllPokemon(self):
