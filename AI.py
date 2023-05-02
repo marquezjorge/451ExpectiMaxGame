@@ -3,7 +3,6 @@ from copy import deepcopy
 # The max depth of the search tree for the expectimax algorithm
 SEARCH_DEPTH = 3
 
-
 def ai_move(state):
     """
     Initiates the expectimax algorithm.
@@ -17,7 +16,6 @@ def ai_move(state):
     # Run the expectimax algorithm to find the best move
     _, bestMove = expectimax(state, SEARCH_DEPTH, True)
     return bestMove
-
 
 def expectimax(state, depth, is_maximizing_player):
     """
@@ -64,7 +62,6 @@ def expectimax(state, depth, is_maximizing_player):
     # Return value and move
     return bestValue, bestMove
 
-
 def is_terminal(state):
     """
     Check if the game is terminal if any player has no remaining Pokemon.
@@ -76,7 +73,6 @@ def is_terminal(state):
         True if the game is terminal, False otherwise.
     """
     return state['player_remaining_pokemon'] == 0 or state['rival_remaining_pokemon'] == 0
-
 
 def utility(state):
     """
@@ -116,7 +112,6 @@ def utility(state):
 
     return totalScore
     
-
 def get_possible_moves(state):
     """
     Generates the possible moves the AI can make for a game state.
@@ -129,7 +124,6 @@ def get_possible_moves(state):
     """
     rival = state['rival']
     return rival.getPokemonMoves(rival.getCurrentPokemonName())
-
 
 def perform_move(state, move):
     """

@@ -42,7 +42,6 @@ def updateGameState(gameState, player, rival, playerAllMon, rivalAllMon, playerC
     
     return state
 
-# Function to print the game state
 def printState(state):
     """
     Helper function to print the game state if needed.
@@ -114,8 +113,11 @@ while option == 'p':
     # Start the battle
     while player.canContinue() and rival.canContinue():
         # Variables for health
-        playerRemainingMonHealth = None;
-        rivalRemainingMonHealth = None; 
+        playerRemainingMonHealth = None
+        rivalRemainingMonHealth = None
+        # Flag for invalid input
+        errorFlag = False
+        
         # If it is players turn
         if turn == 0:
             # Print pokemon statuses
@@ -126,38 +128,43 @@ while option == 'p':
             print(player.getCurrentPokemon())
             print()
             
-            # Prompt player to select an attack move
-            playerMove = input('What move do you use?\n')
-            # Calculate damage from attack
-            damageDealt = player.getAttackDamage(playerMove)
-            # Implement damage to the rival
-            rivalRemainingMonHealth = rival.takeDamage(damageDealt)
+            try:
+                # Prompt player to select an attack move
+                playerMove = input('What move do you use?\n')
+                # Calculate damage from attack
+                damageDealt = player.getAttackDamage(playerMove)
+                # Implement damage to the rival
+                rivalRemainingMonHealth = rival.takeDamage(damageDealt)
 
-            # If rival is killed, select new pokemon
-            if rivalRemainingMonHealth == 0:
-                if not rival.canContinue():
-                    print('Your rival has been defeated!')
-                    break
-                
-                # Output message
-                print(f'Look at that! {rivalName}\'s {rival.getCurrentPokemonName()} is down!')
-                
-                # AI is given the next available pokemon
-                rival.setCurrentPokemon(rival.getSpecificPokemon(0))
-                
-                # Output message
-                print(f'{rivalName} is sending out {rival.getCurrentPokemonName()}!')
-                print("-"*100)
-                print()
-                
-                # Update turn flag
-                turn += 1
-                
-                # Update the game state after each move
-                moveHistory.append(('player', playerMove))
-                updateGameState(gameState, player, rival, player.getAllPokemon(), rival.getAllPokemon(), player.getCurrentPokemon(), rival.getCurrentPokemon(), len(player._pokemon), len(rival._pokemon), playerRemainingMonHealth, rivalRemainingMonHealth, moveHistory, turn)
-                
-                continue
+                # If rival is killed, select new pokemon
+                if rivalRemainingMonHealth == 0:
+                    if not rival.canContinue():
+                        print('Your rival has been defeated!')
+                        break
+                    
+                    # Output message
+                    print(f'Look at that! {rivalName}\'s {rival.getCurrentPokemonName()} is down!')
+                    
+                    # AI is given the next available pokemon
+                    rival.setCurrentPokemon(rival.getSpecificPokemon(0))
+                    
+                    # Output message
+                    print(f'{rivalName} is sending out {rival.getCurrentPokemonName()}!')
+                    print("-"*100)
+                    print()
+                    
+                    # Update turn flag
+                    turn += 1
+                    
+                    # Update the game state after each move
+                    moveHistory.append(('player', playerMove))
+                    updateGameState(gameState, player, rival, player.getAllPokemon(), rival.getAllPokemon(), player.getCurrentPokemon(), rival.getCurrentPokemon(), len(player._pokemon), len(rival._pokemon), playerRemainingMonHealth, rivalRemainingMonHealth, moveHistory, turn)
+                    
+                    continue
+            except KeyError as e:
+                print('Invalid move')
+                errorFlag = True
+                break
             
             # If rival is still alive, print damage dealt
             if damageDealt > 0:
@@ -231,7 +238,9 @@ while option == 'p':
         updateGameState(gameState, player, rival, player.getAllPokemon(), rival.getAllPokemon(), player.getCurrentPokemon(), rival.getCurrentPokemon(), len(player._pokemon), len(rival._pokemon), playerRemainingMonHealth, rivalRemainingMonHealth, moveHistory, turn)
         
     # Check for a winner
-    if player.canContinue():
+    if errorFlag:
+        print('Try again.')
+    elif player.canContinue():
         print('You did it! You beat your rival!')
     else:
         print('Smell ya later, loser')
