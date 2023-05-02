@@ -2,20 +2,57 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5.QtCore import Qt
-import sys
-
 from Pokemon import *
 from Trainer import Trainer
+from AI import ai_move
 import Constants
+import random
 
 
-def quitLoopAndReturnMoveName(button: QPushButton):
-    return button.text()
+def updateGameState(gameState, player, rival, playerAllMon, rivalAllMon, playerCurrentMon, rivalCurrentMon,
+                    playerRemainingMon, rivalRemainingMon, playerRemainingHealth, rivalRemainingHealth, moveHistory,
+                    turn):
+    """
+    Update the game state after any changes.
+
+    Args:
+        gameState (dict): The facts about the game.
+        player (Trainer): The current player.
+        rival (Trainer): The current rival.
+        playerAllMon (str): The player's pokemon.
+        rivalAllMon (str): The rival's pokemon.
+        playerCurrentMon (str): The player's current pokemon.
+        rivalCurrentMon (str): The rival's current pokemon.
+        playerRemainingMon (int): The player's remaining pokemon.
+        rivalRemainingMon (int): The rivals's remaining pokemon.
+        playerRemainingHealth (int): The player's remaining health.
+        rivalRemainingHealth (int): The rival's remaining health.
+        moveHistory (list): The history of moves
+        turn (int): The turn flag.
+
+    Returns:
+        A dictionary containing the updated game state
+    """
+    state = gameState
+    state['player'] = player
+    state['rival'] = rival
+    state['player_all_pokemon'] = playerAllMon
+    state['rival_all_pokemon'] = rivalAllMon
+    state['player_current_pokemon'] = playerCurrentMon
+    state['rival_current_pokemon'] = rivalCurrentMon
+    state['player_remaining_pokemon'] = playerRemainingMon
+    state['rival_remaining_pokemon'] = rivalRemainingMon
+    state['player_remaining_health'] = playerRemainingHealth
+    state['rival_remaining_health'] = rivalRemainingHealth
+    state['move_history'] = moveHistory
+    state['turn'] = turn
+
+    return state
 
 
 class MainWindow(QMainWindow):
     # Max 4
-    POKEMON_PER_TRAINER = 2
+    POKEMON_PER_TRAINER = 4
 
     def __init__(self):
         super().__init__()
@@ -26,6 +63,7 @@ class MainWindow(QMainWindow):
         self.setPalette(palette)
 
         self.setWindowTitle("ExpectiMax Battle")
+        self.setWindowIcon(QIcon(Constants.BACKGROUND))
         self.setFixedSize(QSize(700, 450))
         self.setStyleSheet("font-family: 'Open Sans', sans-serif;")
 
@@ -45,26 +83,70 @@ class MainWindow(QMainWindow):
                                     'width: 100%'
                                     )
 
-        self.turn = 0
         playerName = input('Input your name: ')
         rivalName = input('Input my grandson\'s name: ')
-        rivalIsSpecialTrainer = False
+        self.rivalIsSpecialTrainer = False
         if rivalName.capitalize() in Constants.TRAINERS_LIST:
             rivalName = rivalName.capitalize()
             print(f'You\'ve called special trainer {rivalName}')
             rivalIsSpecialTrainer = True
 
         self.player = Trainer(playerName, tuple(random.sample(Constants.POKEMON_LIST, k=self.POKEMON_PER_TRAINER)))
-        if rivalIsSpecialTrainer:
+        if self.rivalIsSpecialTrainer:
             self.rival = Trainer(rivalName,
                                  tuple(random.sample(Constants.TRAINERS[rivalName], k=self.POKEMON_PER_TRAINER)))
         else:
             self.rival = Trainer(rivalName, tuple(random.sample(Constants.POKEMON_LIST, k=self.POKEMON_PER_TRAINER)))
 
         self.show()
+        self.loop = None
+        self.selectedOption = None
+        self.turn = 0
+        self.currentMon = None
+        self.gameState = {}
+        self.moveHistory = []
         self.startGameLoop()
 
     def startGameLoop(self):
+        option = 'p'
+        while option == 'p':
+            self.player = Trainer(self.player.getName(),
+                                  tuple(random.sample(Constants.POKEMON_LIST, k=self.POKEMON_PER_TRAINER)))
+            if self.rivalIsSpecialTrainer:
+                self.rival = Trainer(self.rival.getName(),
+                                     tuple(random.sample(Constants.TRAINERS[self.rival.getName()],
+                                                         k=self.POKEMON_PER_TRAINER)))
+            else:
+                self.rival = Trainer(self.rival.getName(),
+                                     tuple(random.sample(Constants.POKEMON_LIST, k=self.POKEMON_PER_TRAINER)))
+
+            print('-' * 100)
+            print(str(self.player))
+            print('-' * 100)
+            print(str(self.rival))
+            print('-' * 100)
+            print('\n')
+
+            self.gameState = {
+                'player': self.player,
+                'rival': self.rival,
+                'player_all_pokemon': self.player.getAllPokemon(),
+                'rival_all_pokemon': self.rival.getAllPokemon(),
+                'player_current_pokemon': self.player.getCurrentPokemon(),
+                'rival_current_pokemon': self.rival.getCurrentPokemon(),
+                'player_remaining_pokemon': len(self.player.getPokemon()),
+                'rival_remaining_pokemon': len(self.rival.getPokemon()),
+                'player_remaining_health': 0,
+                'rival_remaining_health': 0,
+                'move_history': self.moveHistory,
+                'turn': self.turn
+            }
+
+            self.GameLoop()
+
+            option = input('Enter P to play again: ').lower()
+
+    def GameLoop(self):
         self.updatePlayerStatus(f'You sent out {self.player.getCurrentPokemonName()}',
                                 self.player.getCurrentPokemonName(),
                                 self.player.getPokemon()[self.player.getCurrentPokemonName()]
@@ -81,6 +163,9 @@ class MainWindow(QMainWindow):
         QTimer.singleShot(3000, loop.quit)
         loop.exec()
 
+        playerRemainingMonHealth = self.player.getPokemon()[self.player.getCurrentPokemonName()].getHealth()
+        rivalRemainingMonHealth = self.rival.getPokemon()[self.rival.getCurrentPokemonName()].getHealth()
+
         while self.player.canContinue() and self.rival.canContinue():
             if self.turn == 0:
 
@@ -88,71 +173,155 @@ class MainWindow(QMainWindow):
                 self.updatePlayerMoves(self.player.getPokemon()[self.player.getCurrentPokemonName()])
                 self.loop.exec()
 
-                sys.exit()
+                selectedMove = self.selectedOption.split('\n')[0]
 
-                damageDealt = player.getAttackDamage(playerMove)
-                rivalRemainingMonHealth = rival.takeDamage(damageDealt)
+                self.currentMon = self.rival.getPokemon()[self.rival.getCurrentPokemonName()]
+                damageDealt = self.player.getAttackDamage(selectedMove)
+                rivalRemainingMonHealth = self.rival.takeDamage(damageDealt)
 
                 if rivalRemainingMonHealth == 0:
-                    if not rival.canContinue():
+                    if not self.rival.canContinue():
                         break
 
-                    print(f'Look at that! {rivalName}\'s {rival.getCurrentPokemonName()} is down!')
-                    # Here let AI choose next mon, for now manually chosen
-                    rival.setCurrentPokemon(input('Select new mon for the CPU, scroll to top if you really need to\n'))
-                    turn += 1
+                    self.updateEnemyStatus(f'{self.player.getCurrentPokemonName()} used {selectedMove}\n'
+                                           f'Look at that! {self.rival.getName()}\'s {self.rival.getCurrentPokemonName()} is down!',
+                                           self.rival.getCurrentPokemonName(),
+                                           self.currentMon
+                                           )
+                    loop = QEventLoop()
+                    QTimer.singleShot(3000, loop.quit)
+                    loop.exec()
+
+                    self.rival.setCurrentPokemon(self.rival.getSpecificPokemon(0))
+                    self.updateEnemyStatus(f'{self.rival.getName()} sent out {self.rival.getCurrentPokemonName()}',
+                                           self.rival.getCurrentPokemonName(),
+                                           self.rival.getPokemon()[self.rival.getCurrentPokemonName()]
+                                           )
+                    loop = QEventLoop()
+                    QTimer.singleShot(3000, loop.quit)
+                    loop.exec()
+
+                    self.updateMoveHistoryAndGameState(playerRemainingMonHealth, rivalRemainingMonHealth)
+
+                    self.turn += 1
                     continue
 
                 if damageDealt > 0:
-                    print(
-                        f'WOW! {player.getCurrentPokemonName()} dealt {damageDealt} to {rivalName}\'s {rival.getCurrentPokemonName()}')
-                    print(f'{rivalName}\'s {rival.getCurrentPokemonName()} only has {rivalRemainingMonHealth} HP left!')
-                else:
-                    print(f'HAHA he missed.')
-                    print(
-                        f'{rivalName}\'s {rival.getCurrentPokemonName()} still has {rivalRemainingMonHealth} HP left!')
-                print('\n')
+                    self.updateEnemyStatus(f'{self.player.getCurrentPokemonName()} used {selectedMove}\n'
+                                           f'WOW! {self.player.getCurrentPokemonName()} dealt {damageDealt} to {self.rival.getName()}\'s {self.rival.getCurrentPokemonName()}\n'
+                                           f'{self.rival.getName()}\'s {self.rival.getCurrentPokemonName()} only has {rivalRemainingMonHealth} HP left!',
+                                           self.rival.getCurrentPokemonName(),
+                                           self.currentMon
+                                           )
+                    loop = QEventLoop()
+                    QTimer.singleShot(3000, loop.quit)
+                    loop.exec()
 
-                turn += 1
+                else:
+                    self.updateEnemyStatus(f'{self.player.getCurrentPokemonName()} used {selectedMove}\n'
+                                           f'HAHA he missed.\n{self.rival.getName()}\'s {self.rival.getCurrentPokemonName()} still has {rivalRemainingMonHealth} HP left!',
+                                           self.rival.getCurrentPokemonName(),
+                                           self.currentMon
+                                           )
+                    loop = QEventLoop()
+                    QTimer.singleShot(3000, loop.quit)
+                    loop.exec()
+
+                self.updateMoveHistoryAndGameState(playerRemainingMonHealth, rivalRemainingMonHealth)
+
+                self.turn += 1
                 continue
 
-            # Here AI will choose next move to make, for now manually entered
-            cpuMove = input('Select a move for the CPU\n')
+            # Here AI will choose next move to make
+            aiMove = ai_move(self.gameState)
+            cpuMove = aiMove
 
-            damageDealt = rival.getAttackDamage(cpuMove)
-            playerRemainingMonHealth = player.takeDamage(damageDealt)
+            self.currentMon = self.player.getPokemon()[self.player.getCurrentPokemonName()]
+            damageDealt = self.rival.getAttackDamage(cpuMove)
+            playerRemainingMonHealth = self.player.takeDamage(damageDealt)
+
             if playerRemainingMonHealth == 0:
-                if not player.canContinue():
+                if not self.player.canContinue():
                     break
 
-                print(f'Oh no! Your {player.getCurrentPokemonName()} is down!')
-                print(player.getAllPokemon())
-                print('\n')
-                player.setCurrentPokemon(input('What Pokemon are you going to send out next?!\n'))
-                turn = 0
+                self.updatePlayerStatus(f'{self.rival.getCurrentPokemonName()} used {cpuMove}\n'
+                                        f'Oh no! Your {self.player.getCurrentPokemonName()} is down!',
+                                        self.player.getCurrentPokemonName(),
+                                        self.currentMon
+                                        )
+                loop = QEventLoop()
+                QTimer.singleShot(3000, loop.quit)
+                loop.exec()
+
+                self.loop = QEventLoop()
+                self.showPlayerAvailablePokemon(self.player.getPokemon())
+                self.loop.exec()
+
+                selectedPokemon = self.selectedOption.split('\n')[0]
+
+                self.player.setCurrentPokemon(selectedPokemon)
+                self.updatePlayerStatus(f'You sent out {self.player.getCurrentPokemonName()}',
+                                        self.player.getCurrentPokemonName(),
+                                        self.player.getPokemon()[self.player.getCurrentPokemonName()]
+                                        )
+                loop = QEventLoop()
+                QTimer.singleShot(3000, loop.quit)
+                loop.exec()
+
+                self.updateMoveHistoryAndGameState(playerRemainingMonHealth, rivalRemainingMonHealth)
+
+                self.turn = 0
                 continue
 
             if damageDealt > 0:
-                print(
-                    f'WOW! {rival.getCurrentPokemonName()} dealt {damageDealt} to your {player.getCurrentPokemonName()}')
-                print(f'Your {player.getCurrentPokemonName()} only has {playerRemainingMonHealth} HP left!')
+                self.updatePlayerStatus(f'{self.rival.getCurrentPokemonName()} used {cpuMove}\n'
+                                        f'WOW! {self.rival.getCurrentPokemonName()} dealt {damageDealt} to your {self.player.getCurrentPokemonName()}\n'
+                                        f'Your {self.player.getCurrentPokemonName()} only has {playerRemainingMonHealth} HP left!',
+                                        self.player.getCurrentPokemonName(),
+                                        self.currentMon
+                                        )
+                loop = QEventLoop()
+                QTimer.singleShot(3000, loop.quit)
+                loop.exec()
             else:
-                print(f'HAHA he missed.')
-                print(f'Your {player.getCurrentPokemonName()} still has {playerRemainingMonHealth} HP left!')
-            print('\n')
+                self.updatePlayerStatus(f'{self.rival.getCurrentPokemonName()} used {cpuMove}\n'
+                                        f'HAHA he missed.\nYour {self.player.getCurrentPokemonName()} still has {playerRemainingMonHealth} HP left!',
+                                        self.player.getCurrentPokemonName(),
+                                        self.currentMon
+                                        )
+                loop = QEventLoop()
+                QTimer.singleShot(3000, loop.quit)
+                loop.exec()
 
-            turn = 0
+            self.updateMoveHistoryAndGameState(playerRemainingMonHealth, rivalRemainingMonHealth)
+
+            self.turn = 0
+
+        if self.player.canContinue():
+            print('You did it! You beat your rival!')
+        else:
+            print('Smell ya later, loser')
+        print('\n')
+
+    def updateMoveHistoryAndGameState(self, playerRemainingMonHealth: int, rivalRemainingMonHealth: int):
+        self.moveHistory.append(('player', self.selectedOption.split('\n')[0]))
+        updateGameState(self.gameState, self.player, self.rival, self.player.getAllPokemon(),
+                        self.rival.getAllPokemon(),
+                        self.player.getCurrentPokemon(), self.rival.getCurrentPokemon(), len(self.player.getPokemon()),
+                        len(self.rival.getPokemon()), playerRemainingMonHealth, rivalRemainingMonHealth,
+                        self.moveHistory,
+                        self.turn)
 
     def updatePlayerStatus(self, textToDisplay: str, pokeName: str, pokemon: Pokemon):
         self.battleOptions.showText(textToDisplay)
-        self.battleScreen.setPlayerPokemonStatus(pokeName, pokemon.getHealth(),
+        self.battleScreen.setPlayerPokemonStatus(pokeName, int(pokemon.getHealth()),
                                                  pokemon.getHealth() / Constants.POKEMON[pokeName][0])
 
     def updatePlayerMoves(self, pokemon: Pokemon):
         self.battleOptions.updateMoveList(pokemon.getMoves())
         for i in range(self.battleOptions.layout().count()):
             button = self.battleOptions.layout().itemAt(i).widget()
-            button.clicked.connect(self.clickedAttackOption)
+            button.clicked.connect(self.clickedOption)
 
     def updateEnemyStatus(self, textToDisplay: str, pokeName: str, pokemon: Pokemon):
         self.battleOptions.showText(textToDisplay)
@@ -160,12 +329,13 @@ class MainWindow(QMainWindow):
                                                 pokemon.getHealth() / Constants.POKEMON[pokeName][0])
 
     def showPlayerAvailablePokemon(self, pokeDict: dict):
-        self.battleOptions.updatePokemonList(pokeDict)
+        self.battleOptions.updatePokemonList(pokeDict, self)
 
-    def clickedAttackOption(self):
+    def clickedOption(self):
         sender = self.sender()
-        print(sender.text())
+        self.selectedOption = sender.text()
         self.loop.quit()
+
 
 class BattleOptions(QFrame):
     def __init__(self):
@@ -196,11 +366,13 @@ class BattleOptions(QFrame):
             position = [int(i) for i in f'{count:02b}']
             self.layout().addWidget(self.AttackButton(moveName, move), position[0], position[1])
 
-    def updatePokemonList(self, pokemonList: dict):
+    def updatePokemonList(self, pokemonList: dict, parent: MainWindow):
         self.clearLayout()
         for count, (moveName, move) in enumerate(pokemonList.items()):
             position = [int(i) for i in f'{count:02b}']
-            self.layout().addWidget(self.PokemonButton(moveName, move), position[0], position[1])
+            pokeButton = self.PokemonButton(moveName, move)
+            pokeButton.clicked.connect(parent.clickedOption)
+            self.layout().addWidget(pokeButton, position[0], position[1])
 
     class OptionLayout(QGridLayout):
         def __init__(self):
@@ -365,26 +537,10 @@ class BattleScreen(QFrame):
             color = self.GREEN if percent > .5 else self.YELLOW if percent > .25 else self.RED
             self.healthBar.setStyleSheet(f"background-color: rgb{color};")
             if percent > .15:
-                self.healthBar.setText(str(health))
+                self.healthBar.setText(str(int(health)))
 
-
-app = QApplication(list())
-#
-window = MainWindow()
-window.show()
-#
-# #window.battleOptions.showText('WOW, His charizard fucked yours up my god...')
-#
-# pikachu = Pokemon(*Constants.POKEMON[Constants.PIKACHU])
-# window.battleOptions.updateMoveList(pikachu.getMoves())
-#
-# # jose = Trainer('Jose', tuple(random.sample(Constants.POKEMON_LIST, 3)))
-# # window.battleOptions.updatePokemonList(jose.getPokemon())
-#
-# #window.battleScreen.setEnemyPokemonStatus('Pikachu', 100, 1)
-# #window.battleScreen.setPlayerPokemonStatus('Machop', 200, 1)
-#
-# window.battleScreen.setEnemyPokemonStatus('Pikachu', 50, .5)
-# window.battleScreen.setPlayerPokemonStatus('Machop', 49, .17)
-#
-app.exec()
+def startMainWindow(sysArgV: list):
+    app = QApplication(sysArgV)
+    window = MainWindow()
+    window.show()
+    app.exec()
