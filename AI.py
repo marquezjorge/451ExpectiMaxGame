@@ -1,7 +1,7 @@
 from copy import deepcopy
 
 # The max depth of the search tree for the expectimax algorithm
-SEARCH_DEPTH = 4
+SEARCH_DEPTH = 3
 
 def ai_move(state):
     """
