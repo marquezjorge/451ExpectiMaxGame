@@ -136,6 +136,7 @@ while option == 'p':
             # If rival is killed, select new pokemon
             if rivalRemainingMonHealth == 0:
                 if not rival.canContinue():
+                    print('Your rival has been defeated!')
                     break
                 
                 # Output message
@@ -191,6 +192,7 @@ while option == 'p':
         # If player is killed, select new pokemon
         if playerRemainingMonHealth == 0:
             if not player.canContinue():
+                print(f'{rivalName}\'s has defeated you!')
                 break
             
             # Prompt message

@@ -92,21 +92,29 @@ def utility(state):
         A value that quantifies how good a specific game state is. 
     """
     # Weights
-    ai_pokemon_weight = 100
-    player_pokemon_weight = -80
-    ai_health_weight = 2
-    player_health_weight = -1.5
+    aiPokemonWeight = 100
+    playerPokemonWeight = -80
+    aiHealthWeight = 2
+    playerHealthWeight = -1.5
 
     # Get scores for AI and for player
-    ai_pokemon_score = state['rival_remaining_pokemon'] * ai_pokemon_weight
-    player_pokemon_score = state['player_remaining_pokemon'] * player_pokemon_weight
-    ai_health_score = state['rival_remaining_health'] * ai_health_weight
-    player_health_score = state['player_remaining_health'] * player_health_weight
+    playerRemainingHealth = state['player_remaining_health']
+    rivalRemainingHealth = state['rival_remaining_health']
+    
+    if playerRemainingHealth is None:
+        playerRemainingHealth = 0
+    if rivalRemainingHealth is None:
+        rivalRemainingHealth = 0;
+    
+    aiPokemonScore = state['rival_remaining_pokemon'] * aiPokemonWeight
+    playerPokemonScore = state['player_remaining_pokemon'] * playerPokemonWeight
+    aiHealthScore = rivalRemainingHealth * aiHealthWeight
+    playerHealthScore = playerRemainingHealth * playerHealthWeight
 
     # Calculate the score
-    total_score = ai_pokemon_score + player_pokemon_score + ai_health_score + player_health_score
+    totalScore = aiPokemonScore + playerPokemonScore + aiHealthScore + playerHealthScore
 
-    return total_score
+    return totalScore
     
 
 def get_possible_moves(state):
