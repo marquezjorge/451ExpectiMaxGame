@@ -38,7 +38,7 @@ def expectimax(state, depth, isMaximizingPlayer):
         return utility(state), None
 
     # Initialize best value depending on player type
-    bestValue = float('-inf') if isMaximizingPlayer else 0
+    bestValue = float('-inf') if isMaximizingPlayer else float('inf')
     # Initialize the best move variable
     bestMove = None
     # Get all the possible moves the ai can make
