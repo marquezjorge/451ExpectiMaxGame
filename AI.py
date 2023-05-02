@@ -1,7 +1,7 @@
 from copy import deepcopy
 
 # The max depth of the search tree for the expectimax algorithm
-SEARCH_DEPTH = 3
+SEARCH_DEPTH = 4
 
 def ai_move(state):
     """
@@ -17,7 +17,7 @@ def ai_move(state):
     _, bestMove = expectimax(state, SEARCH_DEPTH, True)
     return bestMove
 
-def expectimax(state, depth, is_maximizing_player):
+def expectimax(state, depth, isMaximizingPlayer):
     """
     Performs a recursive depth-limited search of the game tree. 
     The function uses a maximizing player to look for the move with the highest expected utility value. 
@@ -28,7 +28,7 @@ def expectimax(state, depth, is_maximizing_player):
     Args:
         state (dict): The current game state.
         depth (int): The current search depth.
-        is_maximizing_player (bool): Whether the current player is maximizing or minimizing.
+        isMaximizingPlayer (bool): Whether the current player is maximizing or minimizing.
         
     Returns:
         The best ulility value and the best move for the ai to make.
@@ -38,27 +38,36 @@ def expectimax(state, depth, is_maximizing_player):
         return utility(state), None
 
     # Initialize best value depending on player type
-    bestValue = float('-inf') if is_maximizing_player else float('inf')
+    bestValue = float('-inf') if isMaximizingPlayer else 0
     # Initialize the best move variable
     bestMove = None
     # Get all the possible moves the ai can make
     possible_moves = get_possible_moves(state)
+    
+    # Counter to keep track of the moves for the minimzing player
+    numMoves = 0
 
     # Iterate through all the possible moves
     for move in possible_moves:
         # Generate a new state for each move
         new_state = perform_move(state, move)
         # Compute the utility value for each move and state
-        value, _ = expectimax(new_state, depth - 1, not is_maximizing_player)
+        value, _ = expectimax(new_state, depth - 1, not isMaximizingPlayer)
         
-        # Record value and move depending on maximizing or minimizing player
-        if is_maximizing_player and value > bestValue:
-            bestValue = value
+        # If it is maxmizing player (AI)
+        if isMaximizingPlayer:
+            if value > bestValue:
+                bestValue = value
+                bestMove = move
+        else:
+            bestValue += value
+            numMoves += 1
             bestMove = move
-        elif not is_maximizing_player and value < bestValue:
-            bestValue = value
-            bestMove = move
-
+        
+        # Calculate the average utility for the minimxing player (human)
+        if not isMaximizingPlayer:
+                bestValue /= numMoves
+        
     # Return value and move
     return bestValue, bestMove
 
