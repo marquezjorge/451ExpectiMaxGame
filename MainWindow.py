@@ -82,69 +82,59 @@ class MainWindow(QMainWindow):
         centralWidget.setStyleSheet('height: 100%;'
                                     'width: 100%'
                                     )
-
-        playerName = input('Input your name: ')
-        rivalName = input('Input my grandson\'s name: ')
-        self.rivalIsSpecialTrainer = False
-        if rivalName.capitalize() in Constants.TRAINERS_LIST:
-            rivalName = rivalName.capitalize()
-            print(f'You\'ve called special trainer {rivalName}')
-            rivalIsSpecialTrainer = True
-
-        self.player = Trainer(playerName, tuple(random.sample(Constants.POKEMON_LIST, k=self.POKEMON_PER_TRAINER)))
-        if self.rivalIsSpecialTrainer:
-            self.rival = Trainer(rivalName,
-                                 tuple(random.sample(Constants.TRAINERS[rivalName], k=self.POKEMON_PER_TRAINER)))
-        else:
-            self.rival = Trainer(rivalName, tuple(random.sample(Constants.POKEMON_LIST, k=self.POKEMON_PER_TRAINER)))
-
         self.show()
+        self.turn = 0
         self.loop = None
         self.selectedOption = None
-        self.turn = 0
         self.currentMon = None
         self.gameState = {}
         self.moveHistory = []
-        self.startGameLoop()
+        self.rivalName = None
+        self.rival = None
+        self.player = None
+        self.showStartScreen()
 
-    def startGameLoop(self):
-        option = 'p'
-        while option == 'p':
-            self.player = Trainer(self.player.getName(),
-                                  tuple(random.sample(Constants.POKEMON_LIST, k=self.POKEMON_PER_TRAINER)))
-            if self.rivalIsSpecialTrainer:
-                self.rival = Trainer(self.rival.getName(),
-                                     tuple(random.sample(Constants.TRAINERS[self.rival.getName()],
-                                                         k=self.POKEMON_PER_TRAINER)))
-            else:
-                self.rival = Trainer(self.rival.getName(),
-                                     tuple(random.sample(Constants.POKEMON_LIST, k=self.POKEMON_PER_TRAINER)))
+    def showStartScreen(self):
+        self.loop = QEventLoop()
+        self.battleOptions.showStartButton(self)
+        self.loop.exec()
 
-            print('-' * 100)
-            print(str(self.player))
-            print('-' * 100)
-            print(str(self.rival))
-            print('-' * 100)
-            print('\n')
+        self.initializeAndStartGameLoop()
 
-            self.gameState = {
-                'player': self.player,
-                'rival': self.rival,
-                'player_all_pokemon': self.player.getAllPokemon(),
-                'rival_all_pokemon': self.rival.getAllPokemon(),
-                'player_current_pokemon': self.player.getCurrentPokemon(),
-                'rival_current_pokemon': self.rival.getCurrentPokemon(),
-                'player_remaining_pokemon': len(self.player.getPokemon()),
-                'rival_remaining_pokemon': len(self.rival.getPokemon()),
-                'player_remaining_health': 0,
-                'rival_remaining_health': 0,
-                'move_history': self.moveHistory,
-                'turn': self.turn
-            }
+    def showBattleAgainScreen(self):
+        self.loop = QEventLoop()
+        self.battleOptions.showBattleButton(self)
+        self.loop.exec()
 
-            self.GameLoop()
+        self.initializeAndStartGameLoop()
 
-            option = input('Enter P to play again: ').lower()
+    def initializeAndStartGameLoop(self):
+        self.player = Trainer('You', tuple(random.sample(Constants.POKEMON_LIST, k=self.POKEMON_PER_TRAINER)))
+
+        if self.rivalName.capitalize() in Constants.TRAINERS_LIST:
+            # Maybe showText here to show special trainer
+            self.rival = Trainer(self.rivalName, tuple(random.sample(Constants.TRAINERS[self.rivalName.capitalize()],
+                                                                     k=self.POKEMON_PER_TRAINER)))
+        else:
+            self.rival = Trainer(self.rivalName, tuple(random.sample(Constants.POKEMON_LIST,
+                                                                     k=self.POKEMON_PER_TRAINER)))
+
+        self.gameState = {
+            'player': self.player,
+            'rival': self.rival,
+            'player_all_pokemon': self.player.getAllPokemon(),
+            'rival_all_pokemon': self.rival.getAllPokemon(),
+            'player_current_pokemon': self.player.getCurrentPokemon(),
+            'rival_current_pokemon': self.rival.getCurrentPokemon(),
+            'player_remaining_pokemon': len(self.player.getPokemon()),
+            'rival_remaining_pokemon': len(self.rival.getPokemon()),
+            'player_remaining_health': 0,
+            'rival_remaining_health': 0,
+            'move_history': self.moveHistory,
+            'turn': self.turn
+        }
+
+        self.GameLoop()
 
     def GameLoop(self):
         self.updatePlayerStatus(f'You sent out {self.player.getCurrentPokemonName()}',
@@ -174,6 +164,8 @@ class MainWindow(QMainWindow):
                 self.loop.exec()
 
                 selectedMove = self.selectedOption.split('\n')[0]
+                self.updateMoveHistoryAndGameState('player', selectedMove, playerRemainingMonHealth,
+                                                   rivalRemainingMonHealth)
 
                 self.currentMon = self.rival.getPokemon()[self.rival.getCurrentPokemonName()]
                 damageDealt = self.player.getAttackDamage(selectedMove)
@@ -201,8 +193,6 @@ class MainWindow(QMainWindow):
                     QTimer.singleShot(3000, loop.quit)
                     loop.exec()
 
-                    self.updateMoveHistoryAndGameState(playerRemainingMonHealth, rivalRemainingMonHealth)
-
                     self.turn += 1
                     continue
 
@@ -227,14 +217,13 @@ class MainWindow(QMainWindow):
                     QTimer.singleShot(3000, loop.quit)
                     loop.exec()
 
-                self.updateMoveHistoryAndGameState(playerRemainingMonHealth, rivalRemainingMonHealth)
-
                 self.turn += 1
                 continue
 
             # Here AI will choose next move to make
             aiMove = ai_move(self.gameState)
             cpuMove = aiMove
+            self.updateMoveHistoryAndGameState('rival', cpuMove, playerRemainingMonHealth, rivalRemainingMonHealth)
 
             self.currentMon = self.player.getPokemon()[self.player.getCurrentPokemonName()]
             damageDealt = self.rival.getAttackDamage(cpuMove)
@@ -268,8 +257,6 @@ class MainWindow(QMainWindow):
                 QTimer.singleShot(3000, loop.quit)
                 loop.exec()
 
-                self.updateMoveHistoryAndGameState(playerRemainingMonHealth, rivalRemainingMonHealth)
-
                 self.turn = 0
                 continue
 
@@ -293,18 +280,20 @@ class MainWindow(QMainWindow):
                 QTimer.singleShot(3000, loop.quit)
                 loop.exec()
 
-            self.updateMoveHistoryAndGameState(playerRemainingMonHealth, rivalRemainingMonHealth)
-
             self.turn = 0
 
         if self.player.canContinue():
-            print('You did it! You beat your rival!')
+            pass
+            # Show Win Text
         else:
-            print('Smell ya later, loser')
-        print('\n')
+            pass
+            # Show Lose Text
 
-    def updateMoveHistoryAndGameState(self, playerRemainingMonHealth: int, rivalRemainingMonHealth: int):
-        self.moveHistory.append(('player', self.selectedOption.split('\n')[0]))
+        self.showBattleAgainScreen()
+
+    def updateMoveHistoryAndGameState(self, agent: str, move: str, playerRemainingMonHealth: int,
+                                      rivalRemainingMonHealth: int):
+        self.moveHistory.append((agent, move))
         updateGameState(self.gameState, self.player, self.rival, self.player.getAllPokemon(),
                         self.rival.getAllPokemon(),
                         self.player.getCurrentPokemon(), self.rival.getCurrentPokemon(), len(self.player.getPokemon()),
@@ -336,6 +325,11 @@ class MainWindow(QMainWindow):
         self.selectedOption = sender.text()
         self.loop.quit()
 
+    def getRivalName(self):
+        sender = self.sender()
+        self.rivalName = sender.rivalNameTextBox.text()
+        self.loop.quit()
+
 
 class BattleOptions(QFrame):
     def __init__(self):
@@ -364,7 +358,7 @@ class BattleOptions(QFrame):
         self.clearLayout()
         for count, (moveName, move) in enumerate(moveList.items()):
             position = [int(i) for i in f'{count:02b}']
-            self.layout().addWidget(self.AttackButton(moveName, move), position[0], position[1])
+            self.layout().addWidget(self.AttackButton(moveName, move), *position)
 
     def updatePokemonList(self, pokemonList: dict, parent: MainWindow):
         self.clearLayout()
@@ -372,7 +366,26 @@ class BattleOptions(QFrame):
             position = [int(i) for i in f'{count:02b}']
             pokeButton = self.PokemonButton(moveName, move)
             pokeButton.clicked.connect(parent.clickedOption)
-            self.layout().addWidget(pokeButton, position[0], position[1])
+            self.layout().addWidget(pokeButton, *position)
+
+    def showStartButton(self, parent: MainWindow):
+        self.clearLayout()
+        self.layout().addWidget(self.EnterRivalNameLabel(), 0, 0)
+
+        rivalNameTextBox = self.RivalNameTextBox()
+        startButton = self.StartButton(rivalNameTextBox)
+        startButton.clicked.connect(parent.getRivalName)
+
+        self.layout().addWidget(rivalNameTextBox, 1, 0)
+        self.layout().addWidget(startButton, 2, 0)
+
+    def showBattleButton(self, parent: MainWindow):
+        self.clearLayout()
+
+        battleAgain = self.BattleAgainButton()
+        battleAgain.clicked.connect(parent.clickedOption)
+
+        self.layout().addWidget(battleAgain, 0, 0)
 
     class OptionLayout(QGridLayout):
         def __init__(self):
@@ -423,7 +436,6 @@ HP:{pokemon.getHealth()}
     class TextLabel(QLabel):
         def __init__(self, text: str):
             super().__init__()
-
             self.setStyleSheet("border: none;"
                                "padding-bottom: 110px;"
                                "padding-left: 5px;"
@@ -437,6 +449,64 @@ HP:{pokemon.getHealth()}
                                "text-align: left;"
                                )
             self.setText('- ' + text)
+
+    class EnterRivalNameLabel(QLabel):
+        def __init__(self):
+            super().__init__()
+            self.setStyleSheet("border: none;"
+                               "letter-spacing: 3px;"
+                               "color: black;"
+                               "font-size: 16px;"
+                               "text-align: center;"
+                               )
+            self.setFixedSize(200, 20)
+            self.setAlignment(Qt.AlignCenter)
+            self.setText('Enter Rival\'s Name:')
+
+    class RivalNameTextBox(QLineEdit):
+        def __init__(self):
+            super().__init__()
+            self.setStyleSheet("vertical-align: top;"
+                               "border-width: 2px;"
+                               "text-transform: uppercase;"
+                               "letter-spacing: 3px;"
+                               "color: black;"
+                               "font-size: 12px;"
+                               "text-align: center;"
+                               )
+            self.setAlignment(Qt.AlignHCenter)
+            self.setFixedSize(200, 18)
+
+    class StartButton(QPushButton):
+        def __init__(self, rivalNameTextBox):
+            super().__init__()
+            self.rivalNameTextBox = rivalNameTextBox
+            self.setStyleSheet("border-radius: 6;"
+                               "border-width: 2px;"
+                               "text-transform: uppercase;"
+                               "letter-spacing: 3px;"
+                               "color: white;"
+                               "font-size: 18px;"
+                               "text-align: center;"
+                               "background-color: rgb(90, 90, 220);"
+                               )
+            self.setFixedSize(200, 50)
+            self.setText('Start')
+
+    class BattleAgainButton(QPushButton):
+        def __init__(self):
+            super().__init__()
+            self.setStyleSheet("border-radius: 6;"
+                               "border-width: 2px;"
+                               "text-transform: uppercase;"
+                               "letter-spacing: 3px;"
+                               "color: white;"
+                               "font-size: 18px;"
+                               "text-align: center;"
+                               "background-color: rgb(90, 90, 220);"
+                               )
+            self.setFixedSize(200, 50)
+            self.setText('Battle Again')
 
 
 class BattleScreen(QFrame):
@@ -538,9 +608,11 @@ class BattleScreen(QFrame):
             self.healthBar.setStyleSheet(f"background-color: rgb{color};")
             if percent > .15:
                 self.healthBar.setText(str(int(health)))
+            else:
+                self.healthBar.setText('')
+
 
 def startMainWindow(sysArgV: list):
     app = QApplication(sysArgV)
     window = MainWindow()
-    window.show()
     app.exec()
